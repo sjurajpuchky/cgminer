@@ -1,8 +1,8 @@
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
-m4_define([v_maj], [3])
-m4_define([v_min], [12])
-m4_define([v_mic], [3])
+m4_define([v_maj], [2])
+m4_define([v_min], [11])
+m4_define([v_mic], [4])
 ##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##--##
 m4_define([v_ver], [v_maj.v_min.v_mic])
 m4_define([lt_rev], m4_eval(v_maj + v_min))
@@ -19,7 +19,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([cgminer.c])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE([foreign subdir-objects])
+AM_INIT_AUTOMAKE([foreign])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -50,7 +50,7 @@ AC_PROG_CC
 gl_EARLY
 AC_PROG_GCC_TRADITIONAL
 AM_PROG_CC_C_O
-LT_INIT([disable-shared])
+AC_PROG_RANLIB
 
 gl_INIT
 
@@ -63,10 +63,10 @@ AC_FUNC_ALLOCA
 have_win32=false
 PTHREAD_FLAGS="-lpthread"
 DLOPEN_FLAGS="-ldl"
+OPENCL_LIBS="-lOpenCL"
 WS2_LIBS=""
 MM_LIBS=""
 MATH_LIBS="-lm"
-RT_LIBS="-lrt"
 
 case $target in
   amd64-*)
@@ -81,36 +81,94 @@ case $target in
 esac
 
 case $target in
-  *-*-linux-gnu*)
-    have_linux=true
-    ;;
   *-*-mingw*)
     have_win32=true
     PTHREAD_FLAGS=""
     DLOPEN_FLAGS=""
     WS2_LIBS="-lws2_32"
     MM_LIBS="-lwinmm"
-    RT_LIBS=""
     AC_DEFINE([_WIN32_WINNT], [0x0501], "WinNT version for XP+ support")
     ;;
   powerpc-*-darwin*)
-    have_darwin=true
     CFLAGS="$CFLAGS -faltivec"
+    OPENCL_LIBS=""
     PTHREAD_FLAGS=""
-    RT_LIBS=""
     ;;
   *-*-darwin*)
-    have_darwin=true
+    OPENCL_LIBS="-framework OpenCL"
     PTHREAD_FLAGS=""
-    RT_LIBS=""
 	;;
 esac
+
+
+if test "x$have_win32" != xtrue; then
+	if test "x$have_x86_64" = xtrue; then
+		ARCH_DIR=x86_64
+	else
+		ARCH_DIR=x86
+	fi
+
+	if test "x$ATISTREAMSDKROOT" != x; then
+		OPENCL_FLAGS="-I$ATISTREAMSDKROOT/include $OPENCL_FLAGS"
+		OPENCL_LIBS="-L$ATISTREAMSDKROOT/lib/$ARCH_DIR $OPENCL_LIBS"
+	fi
+
+	if test "x$AMDAPPSDKROOT" != x; then
+		OPENCL_FLAGS="-I$AMDAPPSDKROOT/include $OPENCL_FLAGS"
+		OPENCL_LIBS="-L$AMDAPPSDKROOT/lib/$ARCH_DIR $OPENCL_LIBS"
+	fi
+fi
 
 have_cgminer_sdk=false
 if test -n "$CGMINER_SDK"; then
 	have_cgminer_sdk=true
 	CPPFLAGS="-I$CGMINER_SDK/include $CPPFLAGS"
 	LDFLAGS="-L$CGMINER_SDK/lib/$target $LDFLAGS"
+fi
+
+cpumining="no"
+
+AC_ARG_ENABLE([cpumining],,[cpumining=$enableval]	)
+if test "x$cpumining" = xyes; then
+	AC_DEFINE_UNQUOTED([WANT_CPUMINE], [1], [Enable CPUMINING])
+fi
+AM_CONDITIONAL([HAS_CPUMINE], [test x$cpumining = xyes])
+
+opencl="yes"
+
+AC_ARG_ENABLE([opencl],
+	[AC_HELP_STRING([--disable-opencl],[Override detection and disable building with opencl])],
+	[opencl=$enableval]
+	)
+if test "x$opencl" != xno; then
+	# Check for OpenCL (the long way needed on mingw32 due to calling conventions)
+	AC_MSG_CHECKING([for OpenCL])
+	SAVED_LIBS=$LIBS
+	SAVED_CFLAGS=$CFLAGS
+	LIBS="$LIBS $OPENCL_LIBS"
+	CFLAGS="$CFLAGS $OPENCL_FLAGS"
+	AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM([[
+		#ifdef __APPLE_CC__
+		#include <OpenCL/opencl.h>
+		#else
+		#include <CL/cl.h>
+		#endif
+	]],
+	[[return clSetKernelArg(0, 0, 0, 0); ]])],
+	[AC_MSG_RESULT(yes)
+	AC_DEFINE([HAVE_OPENCL], [1], [Defined to 1 if OpenCL is present on the system.])
+	found_opencl=1
+	],
+	[AC_MSG_RESULT(no)
+	OPENCL_FLAGS=
+	OPENCL_LIBS=
+	found_opencl=0])
+	LIBS=$SAVED_LIBS
+	CFLAGS=$SAVED_CFLAGS
+else
+	OPENCL_FLAGS=""
+	OPENCL_LIBS=""
 fi
 
 has_winpthread=false
@@ -126,27 +184,42 @@ if test "x$has_winpthread" != xtrue; then
         PTHREAD_LIBS=-lpthread
 fi
 
-avalon="no"
+AC_CHECK_LIB(jansson, json_loads, request_jansson=false, request_jansson=true)
 
-AC_ARG_ENABLE([avalon],
-	[AC_HELP_STRING([--enable-avalon],[Compile support for Avalon (default disabled)])],
-	[avalon=$enableval]
+AC_ARG_ENABLE([adl],
+	[AC_HELP_STRING([--disable-adl],[Override detection and disable building with adl])],
+	[adl=$enableval]
 	)
-if test "x$avalon" = xyes; then
-	AC_DEFINE([USE_AVALON], [1], [Defined to 1 if Avalon support is wanted])
-fi
-AM_CONDITIONAL([HAS_AVALON], [test x$avalon = xyes])
 
-bab="no"
+scrypt="no"
 
-AC_ARG_ENABLE([bab],
-	[AC_HELP_STRING([--enable-bab],[Compile support for BlackArrow Bitfury (default disabled)])],
-	[bab=$enableval]
-	)
-if test "x$bab" = xyes; then
-	AC_DEFINE([USE_BAB], [1], [Defined to 1 if BlackArrow Bitfury support is wanted])
+if test "$found_opencl" = 1; then
+	if test "x$adl" != xno; then
+		ADL_CPPFLAGS=
+		AC_CHECK_FILE([$srcdir/ADL_SDK/adl_sdk.h], [have_adl=true; ADL_CPPFLAGS=-I$srcdir], have_adl=false,)
+		if test x$have_adl+$have_cgminer_sdk = xfalse+true; then
+			AC_CHECK_FILE([$CGMINER_SDK/include/ADL_SDK/adl_sdk.h], [have_adl=true; ADL_CPPFLAGS=-I$CGMINER_SDK/include], have_adl=false,)
+		fi
+		if test x$have_adl = xtrue
+		then
+			AC_DEFINE([HAVE_ADL], [1], [Defined if ADL headers were found])
+		else
+			DLOPEN_FLAGS=""
+		fi
+	fi
+
+	AC_ARG_ENABLE([scrypt],
+		[AC_HELP_STRING([--enable-scrypt],[Compile support for scrypt litecoin mining (default disabled)])],
+		[scrypt=$enableval]
+		)
+	if test "x$scrypt" = xyes; then
+		AC_DEFINE([USE_SCRYPT], [1], [Defined to 1 if scrypt support is wanted])
+	fi
+else
+	DLOPEN_FLAGS=""
 fi
-AM_CONDITIONAL([HAS_BAB], [test x$bab = xyes])
+
+AM_CONDITIONAL([HAS_SCRYPT], [test x$scrypt = xyes])
 
 bflsc="no"
 
@@ -170,39 +243,6 @@ if test "x$bitforce" = xyes; then
 fi
 AM_CONDITIONAL([HAS_BITFORCE], [test x$bitforce = xyes])
 
-bitfury="no"
-
-AC_ARG_ENABLE([bitfury],
-	[AC_HELP_STRING([--enable-bitfury],[Compile support for BitFury ASICs (default disabled)])],
-	[bitfury=$enableval]
-	)
-if test "x$bitfury" = xyes; then
-	AC_DEFINE([USE_BITFURY], [1], [Defined to 1 if BitFury ASIC support is wanted])
-fi
-AM_CONDITIONAL([HAS_BITFURY], [test x$bitfury = xyes])
-
-drillbit="no"
-
-AC_ARG_ENABLE([drillbit],
-	[AC_HELP_STRING([--enable-drillbit],[Compile support for Drillbit BitFury ASICs (default disabled)])],
-	[drillbit=$enableval]
-	)
-if test "x$drillbit" = xyes; then
-	AC_DEFINE([USE_DRILLBIT], [1], [Defined to 1 if Drillbit BitFury support is wanted])
-fi
-AM_CONDITIONAL([HAS_DRILLBIT], [test x$drillbit = xyes])
-
-hashfast="no"
-
-AC_ARG_ENABLE([hashfast],
-	[AC_HELP_STRING([--enable-hashfast],[Compile support for Hashfast (default disabled)])],
-	[hashfast=$enableval]
-	)
-if test "x$hashfast" = xyes; then
-	AC_DEFINE([USE_HASHFAST], [1], [Defined to 1 if Hashfast support is wanted])
-fi
-AM_CONDITIONAL([HAS_HASHFAST], [test x$hashfast = xyes])
-
 icarus="no"
 
 AC_ARG_ENABLE([icarus],
@@ -214,38 +254,16 @@ if test "x$icarus" = xyes; then
 fi
 AM_CONDITIONAL([HAS_ICARUS], [test x$icarus = xyes])
 
-klondike="no"
+avalon="no"
 
-AC_ARG_ENABLE([klondike],
-	[AC_HELP_STRING([--enable-klondike],[Compile support for Klondike (default disabled)])],
-	[klondike=$enableval]
+AC_ARG_ENABLE([avalon],
+	[AC_HELP_STRING([--enable-avalon],[Compile support for Avalon (default disabled)])],
+	[avalon=$enableval]
 	)
-if test "x$klondike" = xyes; then
-	AC_DEFINE([USE_KLONDIKE], [1], [Defined to 1 if Klondike support is wanted])
+if test "x$avalon" = xyes; then
+	AC_DEFINE([USE_AVALON], [1], [Defined to 1 if Avalon support is wanted])
 fi
-AM_CONDITIONAL([HAS_KLONDIKE], [test x$klondike = xyes])
-
-knc="no"
-
-AC_ARG_ENABLE([knc],
-	[AC_HELP_STRING([--enable-knc],[Compile support for KnC miners (default disabled)])],
-	[knc=$enableval]
-	)
-if test "x$knc" = xyes; then
-	AC_DEFINE([USE_KNC], [1], [Defined to 1 if KnC miner support is wanted])
-fi
-AM_CONDITIONAL([HAS_KNC], [test x$knc = xyes])
-
-minion="no"
-
-AC_ARG_ENABLE([minion],
-	[AC_HELP_STRING([--enable-minion],[Compile support for Minion BlackArrow ASIC (default disabled)])],
-	[minion=$enableval]
-	)
-if test "x$minion" = xyes; then
-	AC_DEFINE([USE_MINION], [1], [Defined to 1 if Minion BlackArrow ASIC support is wanted])
-fi
-AM_CONDITIONAL([HAS_MINION], [test x$minion = xyes])
+AM_CONDITIONAL([HAS_AVALON], [test x$avalon = xyes])
 
 modminer="no"
 
@@ -257,6 +275,17 @@ if test "x$modminer" = xyes; then
 	AC_DEFINE([USE_MODMINER], [1], [Defined to 1 if ModMiner support is wanted])
 fi
 AM_CONDITIONAL([HAS_MODMINER], [test x$modminer = xyes])
+
+ztex="no"
+
+AC_ARG_ENABLE([ztex],
+	[AC_HELP_STRING([--enable-ztex],[Compile support for Ztex (default disabled)])],
+	[ztex=$enableval]
+	)
+if test "x$ztex" = xyes; then
+	AC_DEFINE([USE_ZTEX], [1], [Defined to 1 if Ztex support is wanted])
+fi
+AM_CONDITIONAL([HAS_ZTEX], [test x$ztex = xyes])
 
 curses="auto"
 
@@ -282,63 +311,91 @@ else
 	])
 fi
 
-if test x$avalon$bitforce$bitfury$modminer$bflsc$icarus$hashfast$klondike$drillbit != xnonononononononono; then
-	want_usbutils=true
-else
-	want_usbutils=false
-fi
-
-if test x$bitfury != xno; then
-	want_libbitfury=true
-else
-	want_libbitfury=false
-fi
-
-AM_CONDITIONAL([NEED_FPGAUTILS], [test x$modminer != xno])
-AM_CONDITIONAL([WANT_USBUTILS], [test x$want_usbutils != xfalse])
-AM_CONDITIONAL([WANT_LIBBITFURY], [test x$want_libbitfury != xfalse])
+AM_CONDITIONAL([NEED_FPGAUTILS], [test x$avalon$icarus$bitforce$modminer$ztex != xnonononono])
+AM_CONDITIONAL([NEED_USBUTILS_C], [test x$bitforce$modminer$bflsc != xnonono])
 AM_CONDITIONAL([HAVE_CURSES], [test x$curses = xyes])
+AM_CONDITIONAL([WANT_JANSSON], [test x$request_jansson = xtrue])
 AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([HAVE_x86_64], [test x$have_x86_64 = xtrue])
 
-if test "x$want_usbutils" != xfalse; then
-	dlibusb="no"
+if test "x$bitforce$modminer$bflsc" != xnonono; then
 	AC_DEFINE([USE_USBUTILS], [1], [Defined to 1 if usbutils support required])
-	AC_ARG_WITH([system-libusb],
-		[AC_HELP_STRING([--with-system-libusb],[Compile against dynamic system libusb (default use included static libusb)])],
-		[dlibusb=$withval]
-	)
-
-	if test "x$dlibusb" != xno; then
-		case $target in
-			*-*-freebsd*)
-				LIBUSB_LIBS="-lusb"
-				LIBUSB_CFLAGS=""
-				AC_DEFINE(HAVE_LIBUSB, 1, [Define if you have libusb-1.0])
-				;;
-			*)
-				PKG_CHECK_MODULES(LIBUSB, libusb-1.0, [AC_DEFINE(HAVE_LIBUSB, 1, [Define if you have libusb-1.0])], [AC_MSG_ERROR([Could not find usb library - please install libusb-1.0])])
-				;;
-		esac
-	else
-		AC_CONFIG_SUBDIRS([compat/libusb-1.0])
-		LIBUSB_LIBS="compat/libusb-1.0/libusb/.libs/libusb-1.0.a"
-		if test "x$have_linux" = "xtrue"; then
-			LIBUSB_LIBS+=" -ludev"
-		fi
-		if test "x$have_darwin" = "xtrue"; then
-			LIBUSB_LIBS+=" -lobjc"
-			LDFLAGS+=" -framework CoreFoundation -framework IOKit"
-		fi
-	fi
-else
-	LIBUSB_LIBS=""
 fi
 
-AM_CONDITIONAL([WANT_STATIC_LIBUSB], [test x$dlibusb = xno])
+if test x$request_jansson = xtrue
+then
+	JANSSON_LIBS="compat/jansson/libjansson.a"
+else
+	JANSSON_LIBS=-ljansson
+fi
 
-AC_CONFIG_SUBDIRS([compat/jansson-2.5])
-JANSSON_LIBS="compat/jansson-2.5/src/.libs/libjansson.a"
+dnl Find YASM
+has_yasm=false
+AC_PATH_PROG([YASM],[yasm],[false])
+if test "x$YASM" != "xfalse" ; then
+  AC_MSG_CHECKING([if yasm version is greater than 1.0.1])
+  yasmver=`"$YASM" --version | head -1 | cut -d\  -f2`
+  yamajor=`echo $yasmver | cut -d. -f1`
+  yaminor=`echo $yasmver | cut -d. -f2`
+  yamini=`echo $yasmver | cut -d. -f3`
+  if test "$yamajor" -ge "1" ; then
+    if test "$yamajor" -eq "1" ; then
+      if test "$yaminor" -ge "0" ; then
+        if test "$yaminor" -eq "0"; then
+          if test "$yamini" -ge "1"; then
+            has_yasm=true
+          fi
+        else
+          has_yasm=true
+        fi
+      fi
+    fi
+  else
+    has_yasm=false
+  fi
+  if test "x$has_yasm" = "xtrue" ; then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+  fi
+fi
+if test "x$has_yasm" = "xfalse" ; then
+  AC_MSG_NOTICE([yasm is required for the assembly algorithms. They will be skipped.])
+else
+  if test "x$have_x86_64" = xtrue; then
+    if test "x$have_win32" = xtrue; then
+      YASM_FMT="win64"
+    else
+      YASM_FMT="elf64"
+    fi
+  elif test "x$have_win32" = xtrue; then
+    YASM_FMT="coff"
+  else
+    YASM_FMT="elf32"
+  fi
+fi
+
+AM_CONDITIONAL([HAS_YASM], [test x$has_yasm = xtrue])
+
+if test "x$icarus" != xno; then
+	AC_ARG_WITH([libudev], [AC_HELP_STRING([--without-libudev], [Autodetect FPGAs using libudev (default enabled)])],
+		[libudev=$withval],
+		[libudev=auto]
+		)
+	if test "x$libudev" != "xno"; then
+		AC_CHECK_HEADER([libudev.h],[
+			libudev=yes
+			UDEV_LIBS=-ludev
+			AC_DEFINE([HAVE_LIBUDEV], [1], [Defined to 1 if libudev is wanted])
+		], [
+			if test "x$libudev" = "xyes"; then
+				AC_MSG_ERROR([libudev not found])
+			fi
+			libudev=no
+		])
+	fi
+fi
+AM_CONDITIONAL([HAVE_LIBUDEV], [test x$libudev != xno])
 
 PKG_PROG_PKG_CONFIG()
 
@@ -352,28 +409,29 @@ if test "x$have_cgminer_sdk" = "xtrue"; then
 	PKG_CONFIG_PATH="$CGMINER_SDK/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 fi
 
+if test "x$ztex$modminer$bitforce$bflsc" != xnononono; then
+  case $target in
+    *-*-freebsd*)
+      LIBUSB_LIBS="-lusb"
+      LIBUSB_CFLAGS=""
+      AC_DEFINE(HAVE_LIBUSB, 1, [Define if you have libusb-1.0])
+      ;;
+    *)
+      PKG_CHECK_MODULES(LIBUSB, libusb-1.0, [AC_DEFINE(HAVE_LIBUSB, 1, [Define if you have libusb-1.0])], [AC_MSG_ERROR([Could not find usb library - please install libusb-1.0])])
+      ;;
+  esac
+fi
 AC_SUBST(LIBUSB_LIBS)
 AC_SUBST(LIBUSB_CFLAGS)
 
-AC_ARG_ENABLE([libcurl],
-	[AC_HELP_STRING([--disable-libcurl],[Disable building with libcurl for getwork and GBT support])],
-	[libcurl=$enableval]
-	)
-
-if test "x$libcurl" != xno; then
-	if test "x$have_win32" != xtrue; then
-		PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], [AC_DEFINE([CURL_HAS_KEEPALIVE], [1], [Defined if version of curl supports keepalive.])],
-			[PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.18.2], ,[AC_MSG_ERROR([Missing required libcurl dev >= 7.18.2])])])
-	else
-		PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], ,[AC_MSG_ERROR([Missing required libcurl dev >= 7.25.0])])
-		AC_DEFINE([CURL_HAS_KEEPALIVE], [1])
-	fi
-	AC_DEFINE([HAVE_LIBCURL], [1], [Defined to 1 if libcurl support built in])
+if test "x$have_win32" != xtrue; then
+	PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], [AC_DEFINE([CURL_HAS_KEEPALIVE], [1], [Defined if version of curl supports keepalive.])],
+		[PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.18.2], ,[AC_MSG_ERROR([Missing required libcurl dev >= 7.18.2])])])
 else
-	LIBCURL_LIBS=""
+	PKG_CHECK_MODULES([LIBCURL], [libcurl >= 7.25.0], ,[AC_MSG_ERROR([Missing required libcurl dev >= 7.25.0])])
+	AC_DEFINE([CURL_HAS_KEEPALIVE], [1])
 fi
 AC_SUBST(LIBCURL_LIBS)
-
 
 #check execv signature
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([
@@ -421,6 +479,15 @@ fi
 
 AC_DEFINE_UNQUOTED([CGMINER_PREFIX], ["$prefix/bin"], [Path to cgminer install])
 
+AC_DEFINE_UNQUOTED([PHATK_KERNNAME], ["phatk121016"], [Filename for phatk kernel])
+AC_DEFINE_UNQUOTED([POCLBM_KERNNAME], ["poclbm130302"], [Filename for poclbm kernel])
+AC_DEFINE_UNQUOTED([DIAKGCN_KERNNAME], ["diakgcn121016"], [Filename for diakgcn kernel])
+AC_DEFINE_UNQUOTED([DIABLO_KERNNAME], ["diablo130302"], [Filename for diablo kernel])
+AC_DEFINE_UNQUOTED([SCRYPT_KERNNAME], ["scrypt130302"], [Filename for scrypt kernel])
+
+
+AC_SUBST(OPENCL_LIBS)
+AC_SUBST(OPENCL_FLAGS)
 AC_SUBST(JANSSON_LIBS)
 AC_SUBST(PTHREAD_FLAGS)
 AC_SUBST(DLOPEN_FLAGS)
@@ -430,11 +497,16 @@ AC_SUBST(PDCURSES_LIBS)
 AC_SUBST(WS2_LIBS)
 AC_SUBST(MM_LIBS)
 AC_SUBST(MATH_LIBS)
-AC_SUBST(RT_LIBS)
+AC_SUBST(UDEV_LIBS)
+AC_SUBST(YASM_FMT)
+AC_SUBST(ADL_CPPFLAGS)
 
 AC_CONFIG_FILES([
 	Makefile
 	compat/Makefile
+	compat/jansson/Makefile
+	x86_64/Makefile
+	x86_32/Makefile
 	ccan/Makefile
 	lib/Makefile
 	])
@@ -452,32 +524,47 @@ echo
 echo "Configuration Options Summary:"
 echo
 
-if test "x$libcurl" != xno; then
-	echo "  libcurl(GBT+getwork).: Enabled: $LIBCURL_LIBS"
-else
-	echo "  libcurl(GBT+getwork).: Disabled"
-fi
-
 echo "  curses.TUI...........: $cursesmsg"
 
+if test "x$opencl" != xno; then
+	if test $found_opencl = 1; then
+		echo "  OpenCL...............: FOUND. GPU mining support enabled"
+	if test "x$scrypt" != xno; then
+		echo "  scrypt...............: Enabled"
+	else
+		echo "  scrypt...............: Disabled"
+	fi
+
+	else
+		echo "  OpenCL...............: NOT FOUND. GPU mining support DISABLED"
+		if test "x$cpumining$bitforce$avalon$icarus$ztex$modminer$bflsc" = xnonononononono; then
+			AC_MSG_ERROR([No mining configured in])
+		fi
+		echo "  scrypt...............: Disabled (needs OpenCL)"
+	fi
+else
+	echo "  OpenCL...............: Detection overrided. GPU mining support DISABLED"
+	if test "x$cpumining$bitforce$icarus$avalon$ztex$modminer$bflsc" = xnonononononono; then
+		AC_MSG_ERROR([No mining configured in])
+	fi
+	echo "  scrypt...............: Disabled (needs OpenCL)"
+fi
+
+if test "x$adl" != xno; then
+	if test x$have_adl = xtrue; then
+		echo "  ADL..................: SDK found, GPU monitoring support enabled"
+	else
+		echo "  ADL..................: SDK NOT found, GPU monitoring support DISABLED"
+	fi
+else
+	echo "  ADL..................: Detection overrided. GPU monitoring support DISABLED"
+fi
 
 echo
 if test "x$avalon" = xyes; then
 	echo "  Avalon.ASICs.........: Enabled"
 else
 	echo "  Avalon.ASICs.........: Disabled"
-fi
-
-if test "x$minion" = xyes; then
-	echo "  BlackArrowMinion.ASIC: Enabled"
-else
-	echo "  BlackArrowMinion.ASIC: Disabled"
-fi
-
-if test "x$bab" = xyes; then
-	echo "  BlackArrow.ASICs.....: Enabled"
-else
-	echo "  BlackArrow.ASICs.....: Disabled"
 fi
 
 if test "x$bflsc" = xyes; then
@@ -492,40 +579,10 @@ else
 	echo "  BitForce.FPGAs.......: Disabled"
 fi
 
-if test "x$bitfury" = xyes; then
-	echo "  BitFury.ASICs........: Enabled"
-else
-	echo "  BitFury.ASICs........: Disabled"
-fi
-
-if test "x$drillbit" = xyes; then
-	echo "  Drillbit.BitFury.....: Enabled"
-else
-	echo "  Drillbit.BitFury.....: Disabled"
-fi
-
-if test "x$hashfast" = xyes; then
-	echo "  Hashfast.ASICs.......: Enabled"
-else
-	echo "  Hashfast.ASICs.......: Disabled"
-fi
-
 if test "x$icarus" = xyes; then
-	echo "  Icarus.ASICs/FPGAs...: Enabled"
+	echo "  Icarus.FPGAs.........: Enabled"
 else
-	echo "  Icarus.ASICs/FPGAs...: Disabled"
-fi
-
-if test "x$klondike" = xyes; then
-	echo "  Klondike.ASICs.......: Enabled"
-else
-	echo "  Klondike.ASICs.......: Disabled"
-fi
-
-if test "x$knc" = xyes; then
-	echo "  KnC.ASICs............: Enabled"
-else
-	echo "  KnC.ASICs............: Disabled"
+	echo "  Icarus.FPGAs.........: Disabled"
 fi
 
 if test "x$modminer" = xyes; then
@@ -534,17 +591,30 @@ else
 	echo "  ModMiner.FPGAs.......: Disabled"
 fi
 
-if test "x$avalon$bab$bflsc$bitforce$bitfury$hashfast$icarus$klondike$knc$modminer$drillbit$minion" = xnononononononononononono; then
-	AC_MSG_ERROR([No mining configured in])
+if test "x$ztex" = xyes; then
+	echo "  Ztex.FPGAs...........: Enabled"
+else
+	echo "  Ztex.FPGAs...........: Disabled"
+fi
+
+if test "x$icarus" != xno; then
+	echo "  libudev.detection....: $libudev"
+fi
+
+if test "x$cpumining" = xyes; then
+	echo
+	echo "  CPU Mining...........: Enabled"
+	echo "  ASM.(for CPU mining).: $has_yasm"
 fi
 
 echo
 echo "Compilation............: make (or gmake)"
 echo "  CPPFLAGS.............: $CPPFLAGS"
-echo "  CFLAGS...............: $CFLAGS"
+echo "  CFLAGS...............: $CFLAGS $LIBUSB_CFLAGS"
 echo "  LDFLAGS..............: $LDFLAGS $PTHREAD_FLAGS"
-echo "  LDADD................: $DLOPEN_FLAGS $LIBCURL_LIBS $JANSSON_LIBS $PTHREAD_LIBS $NCURSES_LIBS $PDCURSES_LIBS $WS2_LIBS $MATH_LIBS $LIBUSB_LIBS $RT_LIBS"
+echo "  LDADD................: $DLOPEN_FLAGS $LIBCURL_LIBS $JANSSON_LIBS $PTHREAD_LIBS $OPENCL_LIBS $NCURSES_LIBS $PDCURSES_LIBS $WS2_LIBS $MATH_LIBS $UDEV_LIBS $LIBUSB_LIBS"
 echo
 echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix...............: $prefix"
 echo
+
