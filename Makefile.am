@@ -1,109 +1,117 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-JANSSON_CPPFLAGS= -I$(top_builddir)/compat/jansson-2.5/src -I$(top_srcdir)/compat/jansson-2.5/src
-
-if WANT_USBUTILS
-USBUTILS_CPPFLAGS = -I$(top_builddir)/compat/libusb-1.0/libusb -I$(top_srcdir)/compat/libusb-1.0/libusb
+if WANT_JANSSON
+JANSSON_INCLUDES= -I$(top_srcdir)/compat/jansson
 else
-USBUTILS_CPPFLAGS =
+JANSSON_INCLUDES=
 endif
 
-EXTRA_DIST	= example.conf linux-usb-cgminer \
-		  api-example.php miner.php	\
+EXTRA_DIST	= example.conf m4/gnulib-cache.m4 linux-usb-cgminer \
+		  ADL_SDK/readme.txt api-example.php miner.php	\
 		  API.class API.java api-example.c windows-build.txt \
-		  bitstreams/* API-README FPGA-README \
-		  bitforce-firmware-flash.c hexdump.c ASIC-README \
-		  01-cgminer.rules
+		  bitstreams/* API-README FPGA-README SCRYPT-README \
+		  bitforce-firmware-flash.c
 
 SUBDIRS		= lib compat ccan
 
-cgminer_CPPFLAGS = $(PTHREAD_FLAGS) -fno-strict-aliasing $(JANSSON_CPPFLAGS) $(USBUTILS_CPPFLAGS)
+INCLUDES	= $(PTHREAD_FLAGS) -fno-strict-aliasing $(JANSSON_INCLUDES)
 
 bin_PROGRAMS	= cgminer
 
+bin_SCRIPTS	= $(top_srcdir)/*.cl
+
 cgminer_LDFLAGS	= $(PTHREAD_FLAGS)
 cgminer_LDADD	= $(DLOPEN_FLAGS) @LIBCURL_LIBS@ @JANSSON_LIBS@ @PTHREAD_LIBS@ \
-		  @NCURSES_LIBS@ @PDCURSES_LIBS@ @WS2_LIBS@ \
-		  @LIBUSB_LIBS@ @MM_LIBS@ @RT_LIBS@ \
+		  @OPENCL_LIBS@ @NCURSES_LIBS@ @PDCURSES_LIBS@ @WS2_LIBS@ \
+		  @UDEV_LIBS@ @LIBUSB_LIBS@ @MM_LIBS@ \
 		  @MATH_LIBS@ lib/libgnu.a ccan/libccan.a
 
-cgminer_CPPFLAGS += -I$(top_builddir)/lib -I$(top_srcdir)/lib
-
-if !HAVE_WINDOWS
-cgminer_CPPFLAGS += @LIBCURL_CFLAGS@
+if HAVE_WINDOWS
+cgminer_CPPFLAGS = -I$(top_builddir)/lib -I$(top_srcdir)/lib @OPENCL_FLAGS@ @LIBUSB_CFLAGS@
+else
+cgminer_CPPFLAGS = -I$(top_builddir)/lib -I$(top_srcdir)/lib @OPENCL_FLAGS@ @LIBUSB_CFLAGS@ @LIBCURL_CFLAGS@
 endif
+
+cgminer_CPPFLAGS += $(ADL_CPPFLAGS)
 
 # common sources
 cgminer_SOURCES := cgminer.c
 
 cgminer_SOURCES	+= elist.h miner.h compat.h bench_block.h	\
 		   util.c util.h uthash.h logging.h		\
-		   sha2.c sha2.h api.c
+		   sha2.c sha2.h api.c usbutils.h
 
 cgminer_SOURCES	+= logging.c
 
-cgminer_SOURCES	+= klist.h klist.c
+# GPU sources, TODO: make them selectable
+# the GPU portion extracted from original main.c
+cgminer_SOURCES += driver-opencl.h driver-opencl.c
+
+# the original GPU related sources, unchanged
+cgminer_SOURCES += ocl.c ocl.h findnonce.c findnonce.h
+cgminer_SOURCES += adl.c adl.h adl_functions.h
+cgminer_SOURCES += *.cl
+
+if HAS_SCRYPT
+cgminer_SOURCES += scrypt.c scrypt.h
+endif
+
+if HAS_CPUMINE
+# original CPU related sources, unchanged
+cgminer_SOURCES	+= \
+		  sha256_generic.c sha256_4way.c sha256_via.c	\
+		  sha256_cryptopp.c sha256_sse2_amd64.c		\
+		  sha256_sse4_amd64.c sha256_sse2_i386.c	\
+		  sha256_altivec_4way.c sha256_supradrive.c
+
+# the CPU portion extracted from original main.c
+cgminer_SOURCES += driver-cpu.h driver-cpu.c
+
+if HAS_YASM
+AM_CFLAGS	= -DHAS_YASM
+if HAVE_x86_64
+SUBDIRS		+= x86_64
+cgminer_LDADD	+= x86_64/libx8664.a
+else # HAVE_x86_64
+SUBDIRS		+= x86_32
+cgminer_LDADD	+= x86_32/libx8632.a
+endif # HAVE_x86_64
+endif # HAS_YASM
+endif # HAS_CPUMINE
 
 if NEED_FPGAUTILS
 cgminer_SOURCES += fpgautils.c fpgautils.h
 endif
 
-if WANT_USBUTILS
-cgminer_SOURCES += usbutils.c usbutils.h
-endif
-
-if WANT_LIBBITFURY
-cgminer_SOURCES += libbitfury.c libbitfury.h mcp2210.c mcp2210.h
-endif
-
-# Device drivers
-if HAS_AVALON
-cgminer_SOURCES += driver-avalon.c driver-avalon.h
-endif
-
-if HAS_KNC
-cgminer_SOURCES += driver-knc-spi-fpga.c
+if NEED_USBUTILS_C
+cgminer_SOURCES += usbutils.c
 endif
 
 if HAS_BFLSC
-cgminer_SOURCES += driver-bflsc.c driver-bflsc.h
+# cgminer_SOURCES += driver-bflsc.c
 endif
 
 if HAS_BITFORCE
 cgminer_SOURCES += driver-bitforce.c
 endif
 
-if HAS_HASHFAST
-cgminer_SOURCES += driver-hashfast.c driver-hashfast.h hf_protocol.h hf_protocol_be.h
-endif
-
-if HAS_BITFURY
-cgminer_SOURCES += driver-bitfury.c driver-bitfury.h
-endif
-
-if HAS_DRILLBIT
-cgminer_SOURCES += driver-drillbit.c driver-drillbit.h
-endif
-
 if HAS_ICARUS
 cgminer_SOURCES += driver-icarus.c
 endif
 
-if HAS_KLONDIKE
-cgminer_SOURCES += driver-klondike.c
-endif
-
-if HAS_BAB
-cgminer_SOURCES += driver-bab.c
-endif
-
-if HAS_MINION
-cgminer_SOURCES += driver-minion.c
+if HAS_AVALON
+cgminer_SOURCES += driver-avalon.c
 endif
 
 if HAS_MODMINER
 cgminer_SOURCES += driver-modminer.c
+bitstreamsdir = $(bindir)/bitstreams
+dist_bitstreams_DATA = $(top_srcdir)/bitstreams/*
+endif
+
+if HAS_ZTEX
+cgminer_SOURCES += driver-ztex.c libztex.c libztex.h
 bitstreamsdir = $(bindir)/bitstreams
 dist_bitstreams_DATA = $(top_srcdir)/bitstreams/*
 endif
