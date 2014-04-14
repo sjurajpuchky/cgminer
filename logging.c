@@ -1,6 +1,5 @@
 /*
  * Copyright 2011-2012 Con Kolivas
- * Copyright 2013 Andrew Smith
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -14,54 +13,82 @@
 
 #include "logging.h"
 #include "miner.h"
+// #include "util.h"
 
 bool opt_debug = false;
 bool opt_log_output = false;
 
+
+
 /* per default priorities higher than LOG_NOTICE are logged */
 int opt_log_level = LOG_NOTICE;
 
-static void my_log_curses(int prio, const char *datetime, const char *str, bool force)
-{
+static void my_log_curses(__maybe_unused int prio, char *f, va_list ap) {
 	if (opt_quiet && prio != LOG_ERR)
 		return;
 
-	/* Mutex could be locked by dead thread on shutdown so forcelog will
-	 * invalidate any console lock status. */
-	if (force) {
-		mutex_trylock(&console_lock);
-		mutex_unlock(&console_lock);
-	}
 #ifdef HAVE_CURSES
 	extern bool use_curses;
-	if (use_curses && log_curses_only(prio, datetime, str))
+	if (use_curses && log_curses_only(prio, f, ap))
 		;
 	else
 #endif
 	{
+		int len = strlen(f);
+
+		strcpy(f + len - 1, "                    \n");
+
 		mutex_lock(&console_lock);
-		printf("%s%s%s", datetime, str, "                    \n");
+		vprintf(f, ap);
 		mutex_unlock(&console_lock);
 	}
 }
 
-/* high-level logging function, based on global opt_log_level */
+static void log_generic(int prio, const char *fmt, va_list ap);
+static void log_generic_short(int prio, const char *fmt, va_list ap);
+static void flog_generic_short(int prio, const char *fmt, va_list ap);
+
+void vapplog(int prio, const char *fmt, va_list ap) {
+	if (!opt_debug && prio == LOG_DEBUG)
+		return;
+	if (use_syslog || opt_log_output || prio <= LOG_NOTICE)
+		log_generic(prio, fmt, ap);
+}
+
+void vapplog_short(int prio, const char *fmt, va_list ap) {
+	log_generic_short(prio, fmt, ap);
+}
+
+void applog(int prio, const char *fmt, ...) {
+	va_list ap;
+
+	va_start(ap, fmt);
+	vapplog(prio, fmt, ap);
+	va_end(ap);
+}
+
+void fapplog_short(int prio, const char *fmt, va_list ap) {
+	flog_generic_short(prio, fmt, ap);
+}
+
+/* high-level logging functions, based on global opt_log_level */
 
 /*
- * log function
+ * generic log function used by priority specific ones
+ * equals vapplog() without additional priority checks
  */
-void _applog(int prio, const char *str, bool force)
-{
+static void log_generic(int prio, const char *fmt, va_list ap) {
 #ifdef HAVE_SYSLOG_H
 	if (use_syslog) {
-		syslog(prio, "%s", str);
+		vsyslog(prio, fmt, ap);
 	}
 #else
 	if (0) {}
 #endif
 	else {
-		char datetime[64];
-		struct timeval tv = {0, 0};
+		char *f;
+		int len;
+		struct timeval tv = { 0, 0 };
 		struct tm *tm;
 
 		cgtime(&tv);
@@ -69,20 +96,118 @@ void _applog(int prio, const char *str, bool force)
 		const time_t tmp_time = tv.tv_sec;
 		tm = localtime(&tmp_time);
 
-		snprintf(datetime, sizeof(datetime), " [%d-%02d-%02d %02d:%02d:%02d] ",
-			tm->tm_year + 1900,
-			tm->tm_mon + 1,
-			tm->tm_mday,
-			tm->tm_hour,
-			tm->tm_min,
-			tm->tm_sec);
-
+		len = 40 + strlen(fmt) + 22;
+		f = alloca(len);
+		sprintf(f, " [%d-%02d-%02d %02d:%02d:%02d] %s\n", tm->tm_year + 1900,
+				tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min,
+				tm->tm_sec, fmt);
 		/* Only output to stderr if it's not going to the screen as well */
-		if (!isatty(fileno((FILE *)stderr))) {
-			fprintf(stderr, "%s%s\n", datetime, str);	/* atomic write to stderr */
+		if (!isatty(fileno((FILE *) stderr))) {
+			va_list apc;
+
+			va_copy(apc, ap);
+			vfprintf(stderr, f, apc); /* atomic write to stderr */
 			fflush(stderr);
 		}
 
-		my_log_curses(prio, datetime, str, force);
+		my_log_curses(prio, f, ap);
 	}
 }
+
+static void log_generic_short(int prio, const char *fmt, va_list ap) {
+#ifdef HAVE_SYSLOG_H
+	if (use_syslog) {
+		vsyslog(prio, fmt, ap);
+	}
+#else
+	if (0) {}
+#endif
+	else {
+		char *f;
+		int len;
+		struct timeval tv = { 0, 0 };
+		struct tm *tm;
+
+		cgtime(&tv);
+
+		const time_t tmp_time = tv.tv_sec;
+		tm = localtime(&tmp_time);
+
+		len = 40 + strlen(fmt) + 22;
+		f = alloca(len);
+		sprintf(f, " %s\n", fmt);
+		/* Only output to stderr if it's not going to the screen as well */
+		if (!isatty(fileno((FILE *) stderr))) {
+			va_list apc;
+
+			va_copy(apc, ap);
+			vfprintf(stderr, f, apc); /* atomic write to stderr */
+			fflush(stderr);
+		}
+
+		my_log_curses(prio, f, ap);
+	}
+}
+FILE* flog;
+
+static void flog_generic_short(int prio, const char *fmt, va_list ap) {
+	char *f;
+	int len;
+
+	len = 40 + strlen(fmt) + 22;
+	f = alloca(len);
+	sprintf(f, "%s\n", fmt);
+	va_list apc;
+	va_copy(apc, ap);
+	vfprintf(flog, f, apc);
+	fflush(flog);
+}
+/* we can not generalize variable argument list */
+#define LOG_TEMPLATE(PRIO)		\
+	if (PRIO <= opt_log_level) {	\
+		va_list ap;		\
+		va_start(ap, fmt);	\
+		vapplog(PRIO, fmt, ap);	\
+		va_end(ap);		\
+	}
+
+#define LOG_SHORT_TEMPLATE(PRIO)		\
+	if (PRIO <= opt_log_level) {	\
+		va_list ap;		\
+		va_start(ap, fmt);	\
+		vapplog_short(PRIO, fmt, ap);	\
+		va_end(ap);		\
+	}
+
+#define LOG_FSHORT_TEMPLATE(PRIO)		\
+	if (PRIO <= opt_log_level) {	\
+		va_list ap;		\
+		va_start(ap, fmt);	\
+		fapplog_short(PRIO, fmt, ap);	\
+		va_end(ap);		\
+	}
+
+void log_error(const char *fmt, ...) {
+	LOG_TEMPLATE(LOG_ERR);
+}
+
+void log_warning(const char *fmt, ...) {
+	LOG_TEMPLATE(LOG_WARNING);
+}
+
+void log_notice(const char *fmt, ...) {
+	LOG_TEMPLATE(LOG_NOTICE);
+}
+
+void log_info(const char *fmt, ...) {
+	LOG_TEMPLATE(LOG_INFO);
+}
+
+void log_debug(const char *fmt, ...) {
+	LOG_TEMPLATE(LOG_DEBUG);
+}
+
+void log_fshort(const char *fmt, ...) {
+	LOG_FSHORT_TEMPLATE(LOG_INFO);
+}
+

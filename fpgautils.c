@@ -330,7 +330,7 @@ int serial_open(const char *devpath, unsigned long baud, signed short timeout, b
 			applog(LOG_ERR, "%s is already in use by another process", devpath);
 			break;
 		default:
-			applog(LOG_DEBUG, "Open %s failed, GetLastError:%d", devpath, (int)e);
+			applog(LOG_DEBUG, "Open %s failed, GetLastError:%u", devpath, e);
 			break;
 		}
 		return -1;
@@ -409,10 +409,10 @@ int serial_open(const char *devpath, unsigned long baud, signed short timeout, b
 		applog(LOG_WARNING, "Unrecognized baud rate: %lu", baud);
 	}
 
-	my_termios.c_cflag &= ~(CSIZE | PARENB);
 	my_termios.c_cflag |= CS8;
 	my_termios.c_cflag |= CREAD;
 	my_termios.c_cflag |= CLOCAL;
+	my_termios.c_cflag &= ~(CSIZE | PARENB);
 
 	my_termios.c_iflag &= ~(IGNBRK | BRKINT | PARMRK |
 				ISTRIP | INLCR | IGNCR | ICRNL | IXON);
