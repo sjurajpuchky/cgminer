@@ -62,7 +62,7 @@ const uint32_t sd_sha256_init_state[8] = {
 
 uint32_t supradrive_currentupnonce[6];
 uint32_t supradrive_currentdownnonce[6];
-
+semiResult semiResultBuffer[MAX_SEMI_RESULT_BUFF_SIZE];
 uint32_t supradrive_total = 0;
 uint32_t semiResults = 0;
 uint32_t foundResults = 0;

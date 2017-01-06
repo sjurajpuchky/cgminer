@@ -5,7 +5,7 @@ r8 =00000000FFFFC500 r9 =000000018013E150 r10=0000000100000000
 r11=00000001004355AD r12=00000000000000DE r13=0000000600954FD0
 r14=00000000FFFFC500 r15=0000000600953AA8
 rbp=0000000600940970 rsp=00000000FFFFC428
-program=C:\cygwin64\usr\x86_64-pc-cygwin\bin\ld.exe, pid 12356, thread main
+program=C:\cygwin64\usr\x86_64-pc-cygwin\bin\ld.exe, pid 3392, thread main
 cs=0033 ds=002B es=002B fs=0053 gs=002B ss=002B
 Stack trace:
 Frame        Function    Args
