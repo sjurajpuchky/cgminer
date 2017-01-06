@@ -126,7 +126,7 @@ if test -n "$CGMINER_SDK"; then
 	LDFLAGS="-L$CGMINER_SDK/lib/$target $LDFLAGS"
 fi
 
-cpumining="no"
+cpumining="yes"
 
 AC_ARG_ENABLE([cpumining],,[cpumining=$enableval]	)
 if test "x$cpumining" = xyes; then
@@ -134,7 +134,7 @@ if test "x$cpumining" = xyes; then
 fi
 AM_CONDITIONAL([HAS_CPUMINE], [test x$cpumining = xyes])
 
-opencl="yes"
+opencl="no"
 
 AC_ARG_ENABLE([opencl],
 	[AC_HELP_STRING([--disable-opencl],[Override detection and disable building with opencl])],

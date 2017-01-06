@@ -1960,6 +1960,7 @@ extern uint32_t supradrive_total;
 extern uint32_t supradrive_currentupnonce[6];
 extern uint32_t supradrive_currentdownnonce[6];
 extern uint32_t semiResults;
+extern uint32_t foundResults;
 uint32_t supradrive_totals = 0;
 uint32_t supradrive_totals_old = 0;
 /* Must be called with curses mutex lock held and curses_active */

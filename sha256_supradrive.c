@@ -17,7 +17,7 @@
  * any later version.
  *
  * * 12.1.2014 Fixed and modified for SupraDrive algo
- * Copyright (c) Juraj PuchkÃ½ - Devtech <sjurajpuchky@devtech.cz>
+ * Copyright (c) Juraj Puchký - Devtech <sjurajpuchky@devtech.cz>
  * Optimized for OMP 4.2.2014
  *
  */

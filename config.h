@@ -26,7 +26,7 @@
 #define CGMINER_MINOR_VERSION 11
 
 /* Path to cgminer install */
-#define CGMINER_PREFIX "/usr/bin"
+#define CGMINER_PREFIX "/usr/local/bin"
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -46,7 +46,7 @@
 #define DIAKGCN_KERNNAME "diakgcn121016"
 
 /* int execv(const char*, char*const*); */
-#define EXECV_2ND_ARG_TYPE char* const*
+#define EXECV_2ND_ARG_TYPE const char* const*
 
 /* Define to 1 when the gnulib module memchr should be tested. */
 #define GNULIB_TEST_MEMCHR 1
@@ -136,7 +136,7 @@
 #define HAVE_MPROTECT 1
 
 /* Defined to 1 if OpenCL is present on the system. */
-#define HAVE_OPENCL 1
+/* #undef HAVE_OPENCL */
 
 /* Define to 1 if memmem is declared even after undefining macros. */
 #define HAVE_RAW_DECL_MEMMEM 1
@@ -214,7 +214,7 @@
 #define HAVE_RAW_DECL_STRTOK_R 1
 
 /* Define to 1 if strverscmp is declared even after undefining macros. */
-#define HAVE_RAW_DECL_STRVERSCMP 1
+/* #undef HAVE_RAW_DECL_STRVERSCMP */
 
 /* Define to 1 if you have the `sigaction' function. */
 #define HAVE_SIGACTION 1

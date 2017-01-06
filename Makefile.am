@@ -1,6 +1,5 @@
 
 ACLOCAL_AMFLAGS = -I m4
-
 if WANT_JANSSON
 JANSSON_INCLUDES= -I$(top_srcdir)/compat/jansson
 else
