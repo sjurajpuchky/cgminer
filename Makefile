@@ -51,9 +51,9 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-cygwin
-host_triplet = x86_64-unknown-cygwin
-target_triplet = x86_64-unknown-cygwin
+build_triplet = x86_64-unknown-linux-gnu
+host_triplet = x86_64-unknown-linux-gnu
+target_triplet = x86_64-unknown-linux-gnu
 bin_PROGRAMS = cgminer$(EXEEXT)
 #am__append_1 = scrypt.c scrypt.h
 
@@ -64,12 +64,12 @@ am__append_2 = sha256_generic.c sha256_4way.c \
 	sha256_via.c sha256_cryptopp.c \
 	sha256_sse2_amd64.c sha256_sse4_amd64.c \
 	sha256_sse2_i386.c sha256_altivec_4way.c \
-	sha256_supradrive.c driver-cpu.h \
+	sha256_supradrive.c driver-cpu.h bitshared.c \
 	driver-cpu.c
-am__append_3 = x86_64
-am__append_4 = x86_64/libx8664.a
-#am__append_5 = x86_32
-#am__append_6 = x86_32/libx8632.a
+#am__append_3 = x86_64
+#am__append_4 = x86_64/libx8664.a
+##am__append_5 = x86_32
+##am__append_6 = x86_32/libx8632.a
 #am__append_7 = fpgautils.c fpgautils.h
 #am__append_8 = usbutils.c
 
@@ -117,7 +117,7 @@ am__cgminer_SOURCES_DIST = cgminer.c elist.h miner.h compat.h \
 	adl_functions.h *.cl scrypt.c scrypt.h sha256_generic.c \
 	sha256_4way.c sha256_via.c sha256_cryptopp.c \
 	sha256_sse2_amd64.c sha256_sse4_amd64.c sha256_sse2_i386.c \
-	sha256_altivec_4way.c sha256_supradrive.c driver-cpu.h \
+	sha256_altivec_4way.c bitshared.h bitshared.c sha256_supradrive.c driver-cpu.h \
 	driver-cpu.c fpgautils.c fpgautils.h usbutils.c \
 	driver-bitforce.c driver-icarus.c driver-avalon.c \
 	driver-modminer.c driver-ztex.c libztex.c libztex.h
@@ -131,6 +131,7 @@ am__objects_2 = cgminer-sha256_generic.$(OBJEXT) \
 	cgminer-sha256_sse2_i386.$(OBJEXT) \
 	cgminer-sha256_altivec_4way.$(OBJEXT) \
 	cgminer-sha256_supradrive.$(OBJEXT) \
+	bitshared.$(OBJEXT) \
 	cgminer-driver-cpu.$(OBJEXT)
 #am__objects_3 = cgminer-fpgautils.$(OBJEXT)
 #am__objects_4 = cgminer-usbutils.$(OBJEXT)
@@ -269,15 +270,15 @@ distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /cygdrive/c/Users/Petr/workspace/cgminer/missing --run aclocal-1.11
+ACLOCAL = ${SHELL} /home/jpuchky/cgminer/missing --run aclocal-1.11
 ADL_CPPFLAGS = 
 ALLOCA = 
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 0
 APPLE_UNIVERSAL_BUILD = 0
-AUTOCONF = ${SHELL} /cygdrive/c/Users/Petr/workspace/cgminer/missing --run autoconf
-AUTOHEADER = ${SHELL} /cygdrive/c/Users/Petr/workspace/cgminer/missing --run autoheader
-AUTOMAKE = ${SHELL} /cygdrive/c/Users/Petr/workspace/cgminer/missing --run automake-1.11
+AUTOCONF = ${SHELL} /home/jpuchky/cgminer/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/jpuchky/cgminer/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/jpuchky/cgminer/missing --run automake-1.11
 AWK = gawk
 BITSIZEOF_PTRDIFF_T = 
 BITSIZEOF_SIG_ATOMIC_T = 
@@ -289,7 +290,7 @@ CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPP = gcc -E
 CPPFLAGS = 
-CYGPATH_W = cygpath -w
+CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
 DLOPEN_FLAGS = 
@@ -297,7 +298,7 @@ ECHO_C =
 ECHO_N = -n
 ECHO_T = 
 EGREP = /usr/bin/grep -E
-EXEEXT = .exe
+EXEEXT = 
 GNULIB_MBSCASECMP = 0
 GNULIB_MBSCASESTR = 0
 GNULIB_MBSCHR = 0
@@ -384,8 +385,8 @@ INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 JANSSON_LIBS = -ljansson
 LDFLAGS = 
-LIBCURL_CFLAGS = 
-LIBCURL_LIBS = -lcurl
+LIBCURL_CFLAGS =  
+LIBCURL_LIBS = -lcurl  
 LIBGNU_LIBDEPS = 
 LIBGNU_LTLIBDEPS = 
 LIBOBJS = 
@@ -394,7 +395,7 @@ LIBUSB_CFLAGS =
 LIBUSB_LIBS = 
 LTLIBOBJS = 
 MAINT = #
-MAKEINFO = ${SHELL} /cygdrive/c/Users/Petr/workspace/cgminer/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/jpuchky/cgminer/missing --run makeinfo
 MATH_LIBS = -lm
 MKDIR_P = /usr/bin/mkdir -p
 MM_LIBS = 
@@ -457,12 +458,12 @@ VMAJ = 2
 WCHAR_T_SUFFIX = 
 WINT_T_SUFFIX = 
 WS2_LIBS = 
-YASM = /usr/bin/yasm
-YASM_FMT = elf64
-abs_builddir = /cygdrive/c/Users/Petr/workspace/cgminer
-abs_srcdir = /cygdrive/c/Users/Petr/workspace/cgminer
-abs_top_builddir = /cygdrive/c/Users/Petr/workspace/cgminer
-abs_top_srcdir = /cygdrive/c/Users/Petr/workspace/cgminer
+YASM = false
+YASM_FMT = 
+abs_builddir = /home/jpuchky/cgminer
+abs_srcdir = /home/jpuchky/cgminer
+abs_top_builddir = /home/jpuchky/cgminer
+abs_top_srcdir = /home/jpuchky/cgminer
 ac_ct_CC = gcc
 am__include = include
 am__leading_dot = .
@@ -470,10 +471,10 @@ am__quote =
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-cygwin
+build = x86_64-unknown-linux-gnu
 build_alias = 
 build_cpu = x86_64
-build_os = cygwin
+build_os = linux-gnu
 build_vendor = unknown
 builddir = .
 datadir = ${datarootdir}
@@ -486,15 +487,15 @@ gl_LTLIBOBJS =
 gltests_LIBOBJS = 
 gltests_LTLIBOBJS = 
 gltests_WITNESS = IN_CGMINER_GNULIB_TESTS
-host = x86_64-unknown-cygwin
+host = x86_64-unknown-linux-gnu
 host_alias = 
 host_cpu = x86_64
-host_os = cygwin
+host_os = linux-gnu
 host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /cygdrive/c/Users/Petr/workspace/cgminer/install-sh
+install_sh = ${SHELL} /home/jpuchky/cgminer/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -503,7 +504,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /usr/bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /usr/local
+prefix = /usr
 program_transform_name = s,x,x,
 psdir = ${docdir}
 release_info = 
@@ -511,10 +512,10 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 srcdir = .
 sysconfdir = ${prefix}/etc
-target = x86_64-unknown-cygwin
+target = x86_64-unknown-linux-gnu
 target_alias = 
 target_cpu = x86_64
-target_os = cygwin
+target_os = linux-gnu
 target_vendor = unknown
 top_build_prefix = 
 top_builddir = .
@@ -533,13 +534,13 @@ SUBDIRS = lib compat ccan $(am__append_3) $(am__append_5)
 INCLUDES = $(PTHREAD_FLAGS) -fno-strict-aliasing $(JANSSON_INCLUDES)
 bin_SCRIPTS = $(top_srcdir)/*.cl
 cgminer_LDFLAGS = $(PTHREAD_FLAGS)
-cgminer_LDADD = $(DLOPEN_FLAGS) -lcurl -ljansson \
+cgminer_LDADD = $(DLOPEN_FLAGS) -lcurl   -ljansson \
 	-lpthread    \
 	    -lm \
 	lib/libgnu.a ccan/libccan.a $(am__append_4) $(am__append_6)
 cgminer_CPPFLAGS = -I$(top_builddir)/lib \
 	-I$(top_srcdir)/lib  \
-	  \
+	   \
 	$(ADL_CPPFLAGS)
 #cgminer_CPPFLAGS = -I$(top_builddir)/lib \
 #	-I$(top_srcdir)/lib  \
@@ -558,7 +559,7 @@ cgminer_SOURCES := cgminer.c elist.h miner.h compat.h bench_block.h \
 	$(am__append_1) $(am__append_2) $(am__append_7) \
 	$(am__append_8) $(am__append_9) $(am__append_10) \
 	$(am__append_11) $(am__append_12) $(am__append_13)
-AM_CFLAGS = -DHAS_YASM
+#AM_CFLAGS = -DHAS_YASM
 #bitstreamsdir = $(bindir)/bitstreams
 #bitstreamsdir = $(bindir)/bitstreams
 #dist_bitstreams_DATA = $(top_srcdir)/bitstreams/*

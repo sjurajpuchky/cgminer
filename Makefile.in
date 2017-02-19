@@ -64,7 +64,7 @@ bin_PROGRAMS = cgminer$(EXEEXT)
 @HAS_CPUMINE_TRUE@	sha256_via.c sha256_cryptopp.c \
 @HAS_CPUMINE_TRUE@	sha256_sse2_amd64.c sha256_sse4_amd64.c \
 @HAS_CPUMINE_TRUE@	sha256_sse2_i386.c sha256_altivec_4way.c \
-@HAS_CPUMINE_TRUE@	sha256_supradrive.c driver-cpu.h \
+@HAS_CPUMINE_TRUE@	sha256_supradrive.c driver-cpu.h bitshared.c \
 @HAS_CPUMINE_TRUE@	driver-cpu.c
 @HAS_CPUMINE_TRUE@@HAS_YASM_TRUE@@HAVE_x86_64_TRUE@am__append_3 = x86_64
 @HAS_CPUMINE_TRUE@@HAS_YASM_TRUE@@HAVE_x86_64_TRUE@am__append_4 = x86_64/libx8664.a
@@ -117,7 +117,7 @@ am__cgminer_SOURCES_DIST = cgminer.c elist.h miner.h compat.h \
 	adl_functions.h *.cl scrypt.c scrypt.h sha256_generic.c \
 	sha256_4way.c sha256_via.c sha256_cryptopp.c \
 	sha256_sse2_amd64.c sha256_sse4_amd64.c sha256_sse2_i386.c \
-	sha256_altivec_4way.c sha256_supradrive.c driver-cpu.h \
+	sha256_altivec_4way.c bitshared.h bitshared.c sha256_supradrive.c driver-cpu.h \
 	driver-cpu.c fpgautils.c fpgautils.h usbutils.c \
 	driver-bitforce.c driver-icarus.c driver-avalon.c \
 	driver-modminer.c driver-ztex.c libztex.c libztex.h

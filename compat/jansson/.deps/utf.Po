@@ -1,52 +1,52 @@
-utf.o: utf.c /usr/include/string.h /usr/include/_ansi.h \
- /usr/include/newlib.h /usr/include/_newlib_version.h \
- /usr/include/sys/config.h /usr/include/machine/ieeefp.h \
- /usr/include/sys/features.h /usr/include/cygwin/config.h \
- /usr/include/sys/reent.h /usr/include/_ansi.h \
- /usr/lib/gcc/x86_64-pc-cygwin/5.4.0/include/stddef.h \
- /usr/include/sys/_types.h /usr/include/machine/_types.h \
- /usr/include/machine/_default_types.h /usr/include/sys/lock.h \
- /usr/include/sys/cdefs.h /usr/include/sys/_locale.h \
- /usr/include/sys/string.h utf.h config.h /usr/include/inttypes.h \
- /usr/include/sys/_intsup.h \
- /usr/lib/gcc/x86_64-pc-cygwin/5.4.0/include/stdint.h \
- /usr/include/stdint.h /usr/include/sys/_stdint.h
+utf.o: utf.c /usr/include/stdc-predef.h /usr/include/string.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/stddef.h \
+ /usr/include/xlocale.h /usr/include/bits/string.h \
+ /usr/include/bits/string2.h /usr/include/endian.h \
+ /usr/include/bits/endian.h /usr/include/bits/byteswap.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/bits/byteswap-16.h /usr/include/stdlib.h utf.h config.h \
+ /usr/include/inttypes.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h
+
+/usr/include/stdc-predef.h:
 
 /usr/include/string.h:
 
-/usr/include/_ansi.h:
-
-/usr/include/newlib.h:
-
-/usr/include/_newlib_version.h:
-
-/usr/include/sys/config.h:
-
-/usr/include/machine/ieeefp.h:
-
-/usr/include/sys/features.h:
-
-/usr/include/cygwin/config.h:
-
-/usr/include/sys/reent.h:
-
-/usr/include/_ansi.h:
-
-/usr/lib/gcc/x86_64-pc-cygwin/5.4.0/include/stddef.h:
-
-/usr/include/sys/_types.h:
-
-/usr/include/machine/_types.h:
-
-/usr/include/machine/_default_types.h:
-
-/usr/include/sys/lock.h:
+/usr/include/features.h:
 
 /usr/include/sys/cdefs.h:
 
-/usr/include/sys/_locale.h:
+/usr/include/bits/wordsize.h:
 
-/usr/include/sys/string.h:
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/stddef.h:
+
+/usr/include/xlocale.h:
+
+/usr/include/bits/string.h:
+
+/usr/include/bits/string2.h:
+
+/usr/include/endian.h:
+
+/usr/include/bits/endian.h:
+
+/usr/include/bits/byteswap.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
+
+/usr/include/bits/byteswap-16.h:
+
+/usr/include/stdlib.h:
 
 utf.h:
 
@@ -54,10 +54,8 @@ config.h:
 
 /usr/include/inttypes.h:
 
-/usr/include/sys/_intsup.h:
-
-/usr/lib/gcc/x86_64-pc-cygwin/5.4.0/include/stdint.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.8.5/include/stdint.h:
 
 /usr/include/stdint.h:
 
-/usr/include/sys/_stdint.h:
+/usr/include/bits/wchar.h:
