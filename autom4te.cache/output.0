@@ -8866,7 +8866,7 @@ if test -n "$CGMINER_SDK"; then
 	LDFLAGS="-L$CGMINER_SDK/lib/$target $LDFLAGS"
 fi
 
-cpumining="no"
+cpumining="yes"
 
 @%:@ Check whether --enable-cpumining was given.
 if test "${enable_cpumining+set}" = set; then :
@@ -8889,7 +8889,7 @@ else
 fi
 
 
-opencl="yes"
+opencl="no"
 
 @%:@ Check whether --enable-opencl was given.
 if test "${enable_opencl+set}" = set; then :

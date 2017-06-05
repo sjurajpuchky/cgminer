@@ -17,7 +17,7 @@
  * any later version.
  *
  * * 12.1.2014 Fixed and modified for SupraDrive algo
- * Copyright (c) Juraj Puchký - Devtech <sjurajpuchky@devtech.cz>
+ * Copyright (c) Juraj Puchkï¿½ - Devtech <sjurajpuchky@devtech.cz>
  * Optimized for OMP 4.2.2014
  *
  */
@@ -30,6 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include "miner.h"
+#include "bitshared.h"
 
 #define PI 3.14159265
 

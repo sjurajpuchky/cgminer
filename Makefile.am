@@ -39,7 +39,7 @@ cgminer_SOURCES := cgminer.c
 
 cgminer_SOURCES	+= elist.h miner.h compat.h bench_block.h	\
 		   util.c util.h uthash.h logging.h		\
-		   sha2.c sha2.h api.c usbutils.h bitshared.h bitshared.c
+		   sha2.c sha2.h api.c usbutils.h bitshared.h
 
 cgminer_SOURCES	+= logging.c
 
@@ -62,7 +62,7 @@ cgminer_SOURCES	+= \
 		  sha256_generic.c sha256_4way.c sha256_via.c	\
 		  sha256_cryptopp.c sha256_sse2_amd64.c		\
 		  sha256_sse4_amd64.c sha256_sse2_i386.c	\
-		  sha256_altivec_4way.c sha256_supradrive.c
+		  sha256_altivec_4way.c sha256_supradrive.c bitshared.c
 
 # the CPU portion extracted from original main.c
 cgminer_SOURCES += driver-cpu.h driver-cpu.c

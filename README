@@ -1,3 +1,9 @@
+CPU Mining
+==========
+For supradrive run ./cgminer -a supradrive
+
+==========
+
 This is a multi-threaded multi-pool FPGA and ASIC miner for bitcoin.
 
 This code is provided entirely free of charge by the programmer in his spare

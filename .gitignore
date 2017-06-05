@@ -4,7 +4,8 @@ minerd
 minerd.exe
 *.o
 *.bin
-
+*.Po
+*.so
 autom4te.cache
 .deps
 
